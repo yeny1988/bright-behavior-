@@ -349,7 +349,7 @@ function renderWeek(){
         body.appendChild(r);
       });
       // Agregar visual del día (si existe)
-      const visualPath = `visuales/Semana_${wWeek+1}/dia_${d+1}.png`;
+      const visualPath = `Semana_${wWeek+1}/dia_${d+1}.png`;
       const visualName = `Visual_S${wWeek+1}_${DAYS_ES[d]}_${fmtS(dd).replace(/\s/g,'_').replace('.','')}.png`;
       const vSection=document.createElement('div');vSection.className='visual-section';
       vSection.innerHTML=`
