@@ -129,6 +129,29 @@
 
   /* SHARED PILLS */
   .cat-pill{font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+
+  /* ═══════════════════════════════════
+     VISUAL DEL DÍA
+  ═══════════════════════════════════ */
+  .visual-section{margin-top:14px;padding-top:14px;border-top:2px dashed var(--blue-pale);}
+  .visual-label{font-size:0.7rem;font-weight:900;color:var(--blue-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .visual-card{background:var(--blue-pale);border-radius:var(--radius);padding:10px;text-align:center;cursor:pointer;transition:all 0.2s;border:2px solid transparent;}
+  .visual-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 18px rgba(46,109,164,0.18);}
+  .visual-thumb{width:100%;max-width:280px;height:auto;border-radius:8px;display:block;margin:0 auto 10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+  .visual-btn-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+  .visual-btn{background:var(--blue);color:#fff;border:none;border-radius:30px;padding:8px 16px;font-family:'Lato',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.2s;text-decoration:none;}
+  .visual-btn:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(46,109,164,0.3);}
+  .visual-btn.yellow{background:var(--yellow);color:var(--blue-dark);}
+  .visual-btn.yellow:hover{background:var(--yellow-dark);}
+  .no-visual{font-size:0.75rem;color:var(--gray-soft);font-style:italic;padding:8px;text-align:center;}
+
+  /* MODAL para ver imagen grande */
+  .vmodal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center;padding:20px;}
+  .vmodal.show{display:flex;}
+  .vmodal-content{max-width:95%;max-height:90vh;position:relative;}
+  .vmodal-img{max-width:100%;max-height:80vh;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.5);}
+  .vmodal-close{position:absolute;top:-40px;right:0;background:#fff;color:var(--blue-dark);border:none;width:36px;height:36px;border-radius:50%;font-size:1.3rem;cursor:pointer;font-weight:900;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+  .vmodal-actions{position:absolute;bottom:-50px;left:0;right:0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -173,6 +196,18 @@
   <div class="daily-wrap">
     <div class="day-picker" id="dayPicker"></div>
     <div id="dayCard"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL VISUAL ══ -->
+<div class="vmodal" id="vmodal" onclick="closeVModal(event)">
+  <div class="vmodal-content" onclick="event.stopPropagation()">
+    <button class="vmodal-close" onclick="closeVModal()">×</button>
+    <img class="vmodal-img" id="vmodalImg" src="" alt="Visual del día">
+    <div class="vmodal-actions">
+      <a class="visual-btn yellow" id="vmodalDownload" href="" download>⬇ Descargar PNG</a>
+      <button class="visual-btn" onclick="printVisual()">🖨️ Imprimir</button>
+    </div>
   </div>
 </div>
 
@@ -313,6 +348,20 @@ function renderWeek(){
         r.innerHTML=`<div class="sblock-dot" style="background:${dotC[i%dotC.length]}"></div><div class="sblock-time">${blk.time}</div><div class="sblock-content"><div class="sblock-title">${blk.name} <span class="cat-pill c-${blk.cat}">${catLbl[blk.cat]}</span></div><div class="sblock-desc">${blk.desc}</div></div>`;
         body.appendChild(r);
       });
+      // Agregar visual del día (si existe)
+      const visualPath = `visuales/Semana_${wWeek+1}/dia_${d+1}.png`;
+      const visualName = `Visual_S${wWeek+1}_${DAYS_ES[d]}_${fmtS(dd).replace(/\s/g,'_').replace('.','')}.png`;
+      const vSection=document.createElement('div');vSection.className='visual-section';
+      vSection.innerHTML=`
+        <div class="visual-label">🖼️ Visual del día (bilingüe)</div>
+        <div class="visual-card" onclick="openVModal('${visualPath}','${visualName}')">
+          <img class="visual-thumb" src="${visualPath}" alt="Visual ${DAYS_ES[d]}" onerror="this.parentElement.parentElement.innerHTML='<div class=&quot;no-visual&quot;>No hay visual disponible para este día</div>'">
+          <div class="visual-btn-row">
+            <button class="visual-btn" onclick="event.stopPropagation();openVModal('${visualPath}','${visualName}')">👁️ Ver grande</button>
+            <a class="visual-btn yellow" href="${visualPath}" download="${visualName}" onclick="event.stopPropagation()">⬇ Descargar</a>
+          </div>
+        </div>`;
+      body.appendChild(vSection);
     }
     card.appendChild(hdr);card.appendChild(body);grid.appendChild(card);
   }
@@ -405,6 +454,27 @@ function renderDayCard(){
 }
 function toggleAct(di,k){dState[di][k]=!dState[di][k];renderDayCard();}
 function resetDay(di){Object.keys(dState[di]).forEach(k=>dState[di][k]=false);renderDayCard();}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VISUAL MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function openVModal(path,downloadName){
+  const m=document.getElementById('vmodal');
+  document.getElementById('vmodalImg').src=path;
+  const dl=document.getElementById('vmodalDownload');
+  dl.href=path;dl.download=downloadName||'visual.png';
+  m.classList.add('show');
+}
+function closeVModal(e){
+  if(e && e.target.id!=='vmodal' && !e.target.classList.contains('vmodal-close'))return;
+  document.getElementById('vmodal').classList.remove('show');
+}
+function printVisual(){
+  const img=document.getElementById('vmodalImg').src;
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Imprimir Visual</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;max-height:100vh}@media print{body{display:block}img{max-width:100%;height:auto}}</style></head><body><img src="${img}" onload="window.print();"></body></html>`);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('vmodal').classList.remove('show');});
 
 // INIT
 renderStats();renderWeek();buildPicker();renderDayCard();
